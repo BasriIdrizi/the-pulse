@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  JOURNALIST
+  READER
+}
+
+enum ArticleStatus {
+  DRAFT
+  IN_REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  INSIGHTFUL
+  ANGRY
+  SAD
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  image         String?
+  bio           String?   @db.Text
+  role          Role      @default(READER)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  articles  Article[]         @relation("AuthoredArticles")
+  revisions ArticleRevision[]
+  comments  Comment[]
+  reactions Reaction[]
+  media     Media[]
+  accounts  Account[]
+  sessions  Session[]
+
+  @@index([role])
+  @@index([email])
+}
+
+// Auth.js adapter models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  color       String? // hex accent used on category chips
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  articles    Article[]
+
+  @@index([slug])
+}
+
+model Tag {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  slug      String       @unique
+  createdAt DateTime     @default(now())
+  articles  ArticleTag[]
+
+  @@index([slug])
+}
+
+model Article {
+  id          String        @id @default(cuid())
+  title       String
+  slug        String        @unique
+  excerpt     String        @db.Text
+  content     String        @db.Text // Tiptap HTML
+  coverImage  String?
+  coverAlt    String?
+  status      ArticleStatus @default(DRAFT)
+  isFeatured  Boolean       @default(false) // editor picks
+  isBreaking  Boolean       @default(false) // breaking-news banner
+  isTrending  Boolean       @default(false) // manual trending boost
+  viewCount   Int           @default(0)
+  readMinutes Int           @default(3)
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  authorId   String
+  author     User     @relation("AuthoredArticles", fields: [authorId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  tags      ArticleTag[]
+  comments  Comment[]
+  reactions Reaction[]
+  revisions ArticleRevision[]
+
+  // tsvector column maintained by a migration trigger; unsupported keeps Prisma honest
+  searchVector Unsupported("tsvector")?
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([categoryId, status, publishedAt(sort: Desc)])
+  @@index([authorId])
+  @@index([isFeatured, status])
+  @@index([isBreaking, status])
+  @@index([viewCount(sort: Desc)])
+}
+
+model ArticleTag {
+  articleId String
+  tagId     String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@index([tagId])
+}
+
+model ArticleRevision {
+  id        String   @id @default(cuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  editorId  String
+  editor    User     @relation(fields: [editorId], references: [id])
+  title     String
+  excerpt   String   @db.Text
+  content   String   @db.Text
+  note      String? // optional "what changed" note
+  createdAt DateTime @default(now())
+
+  @@index([articleId, createdAt(sort: Desc)])
+}
+
+model Comment {
+  id         String    @id @default(cuid())
+  body       String    @db.Text
+  isApproved Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  authorId   String
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  articleId  String
+  article    Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  parentId   String?
+  parent     Comment?  @relation("Replies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    Comment[] @relation("Replies")
+
+  @@index([articleId, createdAt(sort: Desc)])
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  type      ReactionType
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  articleId String
+  article   Article      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@unique([userId, articleId]) // one reaction per user per article
+  @@index([articleId])
+}
+
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  isConfirmed    Boolean   @default(false)
+  confirmedAt    DateTime?
+  unsubscribedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([isConfirmed])
+}
+
+model Media {
+  id         String    @id @default(cuid())
+  url        String
+  type       MediaType @default(IMAGE)
+  filename   String
+  alt        String?
+  width      Int?
+  height     Int?
+  sizeBytes  Int?
+  uploaderId String
+  uploader   User      @relation(fields: [uploaderId], references: [id])
+  createdAt  DateTime  @default(now())
+
+  @@index([type, createdAt(sort: Desc)])
+}
