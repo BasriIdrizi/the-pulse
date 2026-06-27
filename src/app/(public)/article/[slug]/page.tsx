@@ -16,7 +16,7 @@ import { SectionHeader } from "@/components/home/section-header";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { buildMetadata, SITE_URL } from "@/lib/seo";
+import { buildMetadata, publisherJsonLd, SITE_URL } from "@/lib/seo";
 import { formatNumber } from "@/lib/utils";
 
 export const revalidate = 300;
@@ -62,6 +62,7 @@ export default async function ArticlePage({ params }: Props) {
     datePublished: article.publishedAt?.toISOString(),
     dateModified: article.updatedAt.toISOString(),
     author: [{ "@type": "Person", name: article.author.name }],
+    publisher: publisherJsonLd(),
     mainEntityOfPage: `${SITE_URL}/article/${article.slug}`,
   };
 

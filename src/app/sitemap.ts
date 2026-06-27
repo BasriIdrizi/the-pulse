@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     { url: SITE_URL, changeFrequency: "hourly", priority: 1 },
-    { url: `${SITE_URL}/search`, changeFrequency: "daily", priority: 0.5 },
+    // /search is intentionally excluded — it's noindex (thin/duplicate results).
     ...categories.map((c) => ({
       url: `${SITE_URL}/category/${c.slug}`,
       changeFrequency: "daily" as const,

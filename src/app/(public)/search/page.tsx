@@ -14,6 +14,7 @@ export const metadata: Metadata = buildMetadata({
   title: "Search",
   description: "Search The Pulse archive — full-text search across every published story.",
   path: "/search",
+  noindex: true,
 });
 
 export const dynamic = "force-dynamic";

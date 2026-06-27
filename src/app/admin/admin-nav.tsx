@@ -10,6 +10,7 @@ import {
   Newspaper,
   PenSquare,
   Users,
+  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,7 @@ export function AdminNav({
           { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
         ]
       : []),
+    { href: "/admin/account", label: "Account", icon: UserCog },
   ];
 
   const isActive = (item: NavItem) => {

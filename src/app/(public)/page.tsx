@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 import { getHomepageData } from "@/features/articles/queries";
@@ -7,9 +8,17 @@ import { SectionHeader } from "@/components/home/section-header";
 import { NewsletterForm } from "@/features/newsletter/components/newsletter-form";
 import { PulseMark } from "@/components/layout/pulse-mark";
 import { formatNumber } from "@/lib/utils";
+import { buildMetadata, organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 
 // ISR: page regenerates at most every 60s; publish mutations also revalidate it on demand.
 export const revalidate = 60;
+
+export const metadata: Metadata = buildMetadata({
+  title: "The stories America is talking about",
+  description:
+    "Viral news, true crime, and the strange corners of America — reported straight, updated all day.",
+  path: "/",
+});
 
 export default async function HomePage() {
   const { hero, breaking, trending, latest, mostViewed, editorPicks, categories } =
@@ -17,6 +26,14 @@ export default async function HomePage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
+      />
       <BreakingBanner article={breaking} />
 
       <div className="mx-auto max-w-7xl px-4">
