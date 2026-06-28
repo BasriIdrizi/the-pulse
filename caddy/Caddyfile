@@ -1,0 +1,10 @@
+# Caddy serves HTTPS for the public domain and reverse-proxies to the Next.js
+# app over the internal Docker network. Because the site sits behind the
+# Cloudflare proxy (orange cloud) with SSL mode "Full (strict)", Caddy uses
+# the Cloudflare Origin Certificate instead of fetching a Let's Encrypt one.
+
+readpulsedaily.com, www.readpulsedaily.com {
+	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
+	encode gzip zstd
+	reverse_proxy app:3000
+}

@@ -7,3 +7,6 @@ build
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# TLS certificates / private keys — never commit these
+caddy/certs/

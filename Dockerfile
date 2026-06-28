@@ -21,6 +21,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # route modules, so pass a placeholder if none is provided.
 ARG DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 ENV DATABASE_URL=$DATABASE_URL
+# NEXT_PUBLIC_* vars are inlined at build time, so they must be present here
+# (not just at runtime) for canonical/OG/share URLs to use the real domain.
+ARG NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_SITE_NAME="The Pulse"
+ENV NEXT_PUBLIC_SITE_NAME=$NEXT_PUBLIC_SITE_NAME
 RUN npm run build
 
 # ---- Runtime ----

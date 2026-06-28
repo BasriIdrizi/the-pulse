@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: pulse
-      POSTGRES_PASSWORD: pulse123
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: the_pulse
     ports:
       - "5432:5432"
@@ -19,19 +19,42 @@ services:
   app:
     build:
       context: .
+      args:
+        # NEXT_PUBLIC_* are baked into the build, so they must be passed here
+        # (not just as runtime env) for share/canonical URLs to use the domain.
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+        NEXT_PUBLIC_SITE_NAME: ${NEXT_PUBLIC_SITE_NAME:-The Pulse}
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://pulse:pulse_dev_password@db:5432/the_pulse
-      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in your shell or .env}
-      AUTH_URL: http://localhost:3000
+      DATABASE_URL: postgresql://pulse:${POSTGRES_PASSWORD}@db:5432/the_pulse
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
       AUTH_TRUST_HOST: "true"
-      NEXT_PUBLIC_SITE_URL: http://localhost:3000
-      NEXT_PUBLIC_SITE_NAME: The Pulse
+      NEXT_PUBLIC_SITE_NAME: ${NEXT_PUBLIC_SITE_NAME:-The Pulse}
+    # Port 3000 is no longer published to the public internet — Caddy reaches
+    # the app over the internal Docker network. Re-add "ports: [3000:3000]"
+    # temporarily if you need to test the app directly.
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
     ports:
-      - "3000:3000"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/certs:/etc/caddy/certs:ro
+      - caddy_data:/data
+      - caddy_config:/config
 
 volumes:
   pulse_pgdata:
+  caddy_data:
+  caddy_config:
