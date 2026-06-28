@@ -6,8 +6,11 @@ services:
       POSTGRES_USER: pulse
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: the_pulse
+    # Bind Postgres to localhost only — the app reaches it over the internal
+    # Docker network (db:5432); host tools (prisma) still use 127.0.0.1:5432.
+    # This keeps the database off the public internet entirely.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pulse_pgdata:/var/lib/postgresql/data
     healthcheck:
